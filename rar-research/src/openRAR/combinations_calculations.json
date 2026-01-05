@@ -1,0 +1,345 @@
+{
+  "base_charset_size": 62,
+  "charset_description": "0-9, A-Z, a-z (Sorted)",
+  "range": "2-15",
+  "total_cumulative_combinations": 781514782079074318856775852,
+  "total_cumulative_scientific": "7.82e+26",
+  "breakdown": [
+    {
+      "length": 2,
+      "combinations_count": 3844,
+      "combinations_scientific": "3.84e+03",
+      "description": "Alphanumeric combinations of length 2",
+      "blocks": {
+        "block_1": {
+          "count": 961,
+          "combination": "FU"
+        },
+        "block_2": {
+          "count": 1922,
+          "combination": "Uz"
+        },
+        "block_3": {
+          "count": 2883,
+          "combination": "kU"
+        },
+        "block_4_total": {
+          "count": 3844,
+          "combination": "zz"
+        }
+      }
+    },
+    {
+      "length": 3,
+      "combinations_count": 238328,
+      "combinations_scientific": "2.38e+05",
+      "description": "Alphanumeric combinations of length 3",
+      "blocks": {
+        "block_1": {
+          "count": 59582,
+          "combination": "FUz"
+        },
+        "block_2": {
+          "count": 119164,
+          "combination": "Uzz"
+        },
+        "block_3": {
+          "count": 178746,
+          "combination": "kUz"
+        },
+        "block_4_total": {
+          "count": 238328,
+          "combination": "zzz"
+        }
+      }
+    },
+    {
+      "length": 4,
+      "combinations_count": 14776336,
+      "combinations_scientific": "1.48e+07",
+      "description": "Alphanumeric combinations of length 4",
+      "blocks": {
+        "block_1": {
+          "count": 3694084,
+          "combination": "FUzz"
+        },
+        "block_2": {
+          "count": 7388168,
+          "combination": "Uzzz"
+        },
+        "block_3": {
+          "count": 11082252,
+          "combination": "kUzz"
+        },
+        "block_4_total": {
+          "count": 14776336,
+          "combination": "zzzz"
+        }
+      }
+    },
+    {
+      "length": 5,
+      "combinations_count": 916132832,
+      "combinations_scientific": "9.16e+08",
+      "description": "Alphanumeric combinations of length 5",
+      "blocks": {
+        "block_1": {
+          "count": 229033208,
+          "combination": "FUzzz"
+        },
+        "block_2": {
+          "count": 458066416,
+          "combination": "Uzzzz"
+        },
+        "block_3": {
+          "count": 687099624,
+          "combination": "kUzzz"
+        },
+        "block_4_total": {
+          "count": 916132832,
+          "combination": "zzzzz"
+        }
+      }
+    },
+    {
+      "length": 6,
+      "combinations_count": 56800235584,
+      "combinations_scientific": "5.68e+10",
+      "description": "Alphanumeric combinations of length 6",
+      "blocks": {
+        "block_1": {
+          "count": 14200058896,
+          "combination": "FUzzzz"
+        },
+        "block_2": {
+          "count": 28400117792,
+          "combination": "Uzzzzz"
+        },
+        "block_3": {
+          "count": 42600176688,
+          "combination": "kUzzzz"
+        },
+        "block_4_total": {
+          "count": 56800235584,
+          "combination": "zzzzzz"
+        }
+      }
+    },
+    {
+      "length": 7,
+      "combinations_count": 3521614606208,
+      "combinations_scientific": "3.52e+12",
+      "description": "Alphanumeric combinations of length 7",
+      "blocks": {
+        "block_1": {
+          "count": 880403651552,
+          "combination": "FUzzzzz"
+        },
+        "block_2": {
+          "count": 1760807303104,
+          "combination": "Uzzzzzz"
+        },
+        "block_3": {
+          "count": 2641210954656,
+          "combination": "kUzzzzz"
+        },
+        "block_4_total": {
+          "count": 3521614606208,
+          "combination": "zzzzzzz"
+        }
+      }
+    },
+    {
+      "length": 8,
+      "combinations_count": 218340105584896,
+      "combinations_scientific": "2.18e+14",
+      "description": "Alphanumeric combinations of length 8",
+      "blocks": {
+        "block_1": {
+          "count": 54585026396224,
+          "combination": "FUzzzzzz"
+        },
+        "block_2": {
+          "count": 109170052792448,
+          "combination": "Uzzzzzzz"
+        },
+        "block_3": {
+          "count": 163755079188672,
+          "combination": "kUzzzzzz"
+        },
+        "block_4_total": {
+          "count": 218340105584896,
+          "combination": "zzzzzzzz"
+        }
+      }
+    },
+    {
+      "length": 9,
+      "combinations_count": 13537086546263552,
+      "combinations_scientific": "1.35e+16",
+      "description": "Alphanumeric combinations of length 9",
+      "blocks": {
+        "block_1": {
+          "count": 3384271636565888,
+          "combination": "FUzzzzzzz"
+        },
+        "block_2": {
+          "count": 6768543273131776,
+          "combination": "Uzzzzzzzz"
+        },
+        "block_3": {
+          "count": 10152814909697664,
+          "combination": "kUzzzzzzz"
+        },
+        "block_4_total": {
+          "count": 13537086546263552,
+          "combination": "zzzzzzzzz"
+        }
+      }
+    },
+    {
+      "length": 10,
+      "combinations_count": 839299365868340224,
+      "combinations_scientific": "8.39e+17",
+      "description": "Alphanumeric combinations of length 10",
+      "blocks": {
+        "block_1": {
+          "count": 209824841467085056,
+          "combination": "FUzzzzzzzz"
+        },
+        "block_2": {
+          "count": 419649682934170112,
+          "combination": "Uzzzzzzzzz"
+        },
+        "block_3": {
+          "count": 629474524401255168,
+          "combination": "kUzzzzzzzz"
+        },
+        "block_4_total": {
+          "count": 839299365868340224,
+          "combination": "zzzzzzzzzz"
+        }
+      }
+    },
+    {
+      "length": 11,
+      "combinations_count": 52036560683837093888,
+      "combinations_scientific": "5.20e+19",
+      "description": "Alphanumeric combinations of length 11",
+      "blocks": {
+        "block_1": {
+          "count": 13009140170959273472,
+          "combination": "FUzzzzzzzzz"
+        },
+        "block_2": {
+          "count": 26018280341918546944,
+          "combination": "Uzzzzzzzzzz"
+        },
+        "block_3": {
+          "count": 39027420512877820416,
+          "combination": "kUzzzzzzzzz"
+        },
+        "block_4_total": {
+          "count": 52036560683837093888,
+          "combination": "zzzzzzzzzzz"
+        }
+      }
+    },
+    {
+      "length": 12,
+      "combinations_count": 3226266762397899821056,
+      "combinations_scientific": "3.23e+21",
+      "description": "Alphanumeric combinations of length 12",
+      "blocks": {
+        "block_1": {
+          "count": 806566690599474955264,
+          "combination": "FUzzzzzzzzzz"
+        },
+        "block_2": {
+          "count": 1613133381198949910528,
+          "combination": "Uzzzzzzzzzzz"
+        },
+        "block_3": {
+          "count": 2419700071798424865792,
+          "combination": "kUzzzzzzzzzz"
+        },
+        "block_4_total": {
+          "count": 3226266762397899821056,
+          "combination": "zzzzzzzzzzzz"
+        }
+      }
+    },
+    {
+      "length": 13,
+      "combinations_count": 200028539268669788905472,
+      "combinations_scientific": "2.00e+23",
+      "description": "Alphanumeric combinations of length 13",
+      "blocks": {
+        "block_1": {
+          "count": 50007134817167447226368,
+          "combination": "FUzzzzzzzzzzz"
+        },
+        "block_2": {
+          "count": 100014269634334894452736,
+          "combination": "Uzzzzzzzzzzzz"
+        },
+        "block_3": {
+          "count": 150021404451502341679104,
+          "combination": "kUzzzzzzzzzzz"
+        },
+        "block_4_total": {
+          "count": 200028539268669788905472,
+          "combination": "zzzzzzzzzzzzz"
+        }
+      }
+    },
+    {
+      "length": 14,
+      "combinations_count": 12401769434657526912139264,
+      "combinations_scientific": "1.24e+25",
+      "description": "Alphanumeric combinations of length 14",
+      "blocks": {
+        "block_1": {
+          "count": 3100442358664381728034816,
+          "combination": "FUzzzzzzzzzzzz"
+        },
+        "block_2": {
+          "count": 6200884717328763456069632,
+          "combination": "Uzzzzzzzzzzzzz"
+        },
+        "block_3": {
+          "count": 9301327075993145184104448,
+          "combination": "kUzzzzzzzzzzzz"
+        },
+        "block_4_total": {
+          "count": 12401769434657526912139264,
+          "combination": "zzzzzzzzzzzzzz"
+        }
+      }
+    },
+    {
+      "length": 15,
+      "combinations_count": 768909704948766668552634368,
+      "combinations_scientific": "7.69e+26",
+      "description": "Alphanumeric combinations of length 15",
+      "blocks": {
+        "block_1": {
+          "count": 192227426237191667138158592,
+          "combination": "FUzzzzzzzzzzzzz"
+        },
+        "block_2": {
+          "count": 384454852474383334276317184,
+          "combination": "Uzzzzzzzzzzzzzz"
+        },
+        "block_3": {
+          "count": 576682278711575001414475776,
+          "combination": "kUzzzzzzzzzzzzz"
+        },
+        "block_4_total": {
+          "count": 768909704948766668552634368,
+          "combination": "zzzzzzzzzzzzzzz"
+        }
+      }
+    }
+  ]
+}
