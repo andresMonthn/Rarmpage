@@ -2,7 +2,7 @@ import os
 import struct
 import binascii
 from typing import Optional, Tuple
-from ..core.metadata import Metadata, HeaderType, HeaderFlags
+from core.metadata import Metadata, HeaderType, HeaderFlags
 
 class RarHashExtractor:
     """
@@ -64,7 +64,10 @@ class RarHashExtractor:
                         salt_hex = crypto_info['salt'].hex()
                         psw_check_hex = crypto_info['psw_check'].hex()
                         
-                        return f"$rar5$16${salt_hex}$15$000000000000000000000000000000$8${psw_check_hex}$0"
+                        # IV por defecto (32 chars = 16 bytes)
+                        iv_hex = "0" * 32
+                        
+                        return f"$rar5$16${salt_hex}$15${iv_hex}$8${psw_check_hex}$0"
 
                 # Caso 2: File Encryption (-p)
                 # La información está en el FILE header (0x01) dentro del Extra Area
@@ -105,7 +108,11 @@ class RarHashExtractor:
                                 # y suficiente para verificar la contraseña en el 99% de casos RAR5.
                                 
                                 # Formato simplificado basado en psw_check (UsePswCheck=1)
-                                return f"$rar5$16${salt_hex}$15$000000000000000000000000000000$8${psw_check_hex}$0"
+                                iv_hex = "0" * 32
+                                if 'iv' in extra_info:
+                                    iv_hex = extra_info['iv'].hex()
+
+                                return f"$rar5$16${salt_hex}$16${iv_hex}$8${psw_check_hex}"
 
                     except Exception as e:
                         # Si falla el parsing de este bloque, seguimos al siguiente

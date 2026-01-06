@@ -41,8 +41,12 @@ def main():
     # Comando: gpu_crack
     gpu_parser = subparsers.add_parser("gpu_crack", help="Recuperación de contraseña acelerada por GPU (Hashcat)")
     gpu_parser.add_argument("file", help="Ruta al archivo RAR")
-    gpu_parser.add_argument("--mask", default="?a?a?a?a", help="Máscara de fuerza bruta (Default: ?a?a?a?a)")
-    gpu_parser.add_argument("--hashcat-bin", default=None, help="Ruta al ejecutable de hashcat (Opcional si ya se instaló)")
+    gpu_parser.add_argument("--mask", default=None, help="Máscara personalizada (ej: ?a?a?a?a). Ignora otras opciones si se usa.")
+    gpu_parser.add_argument("-l", "--length", type=int, help="Longitud exacta de la contraseña")
+    gpu_parser.add_argument("--min", type=int, help="Longitud mínima")
+    gpu_parser.add_argument("--max", type=int, help="Longitud máxima")
+    gpu_parser.add_argument("-c", "--charset", choices=["num", "lower", "upper", "alpha", "alphanum", "all", "special"], default="alphanum", help="Juego de caracteres (default: alphanum)")
+    gpu_parser.add_argument("--hashcat-bin", default=None, help="Ruta al ejecutable de hashcat (Opcional)")
 
     # Comando: setup_gpu
     subparsers.add_parser("setup_gpu", help="Descarga e instala Hashcat automáticamente en el proyecto")
@@ -150,13 +154,115 @@ def main():
             engine = HashcatEngine(args.hashcat_bin)
             
             def status_callback(msg):
-                # Callback simple para mostrar progreso
-                print(f"   >> {msg}")
+                # UI Limpia: Solo mostrar progreso y estado final
+                if "Progress.........:" in msg:
+                    # msg format: "Progress.........: 123/456 (10.00%)"
+                    try:
+                        content = msg.split(":", 1)[1].strip()
+                        # Usar retorno de carro \r para sobrescribir la línea
+                        sys.stdout.write(f"\r[*] Probando: {content}   ")
+                        sys.stdout.flush()
+                    except:
+                        pass
+                elif "Status...........:" in msg:
+                     status = msg.split(":", 1)[1].strip()
+                     if status == "Cracked":
+                         print(f"\n[+] Estado: ¡Encontrada!")
+                     elif status == "Exhausted":
+                         print(f"\n[-] Estado: Agotado (No encontrada en este rango)")
+                elif "Speed.#1.........:" in msg:
+                    # Opcional: Mostrar velocidad si se desea
+                    pass
                 
-            print(f"[*] Iniciando ataque con máscara: {args.mask}")
-            print(f"[*] Usando binario hashcat: {args.hashcat_bin}")
+            # Construir máscara y argumentos
+            mask = args.mask
+            extra_args = []
             
-            engine.start_bruteforce(rar_hash, mask=args.mask, callback=status_callback)
+            if not mask:
+                # Charset mapping
+                charset_mask = "?a" # Fallback
+                custom_charset = None
+                
+                if args.charset == "num":
+                    charset_mask = "?d"
+                elif args.charset == "lower":
+                    charset_mask = "?l"
+                elif args.charset == "upper":
+                    charset_mask = "?u"
+                elif args.charset == "alpha":
+                    custom_charset = "?l?u"
+                    charset_mask = "?1"
+                elif args.charset == "alphanum":
+                    custom_charset = "?l?u?d"
+                    charset_mask = "?1"
+                elif args.charset == "special":
+                    custom_charset = "?s"
+                    charset_mask = "?1"
+                elif args.charset == "all":
+                    charset_mask = "?a"
+                    
+                if custom_charset:
+                    extra_args.extend(["-1", custom_charset])
+                    
+                # Length logic
+                if args.length:
+                    mask = charset_mask * args.length
+                elif args.min or args.max:
+                    # Increment mode
+                    min_l = args.min if args.min else 1
+                    max_l = args.max if args.max else 8
+                    
+                    extra_args.append("--increment")
+                    extra_args.extend(["--increment-min", str(min_l)])
+                    extra_args.extend(["--increment-max", str(max_l)])
+                    
+                    # For increment, mask needs to be the MAX length
+                    mask = charset_mask * max_l
+                else:
+                    # Default: Length 4 alphanum if nothing specified
+                    print("[*] No se especificó longitud. Usando default: longitud 4, alfanumérico.")
+                    if not custom_charset and args.charset == "alphanum": # Default charset
+                         extra_args.extend(["-1", "?l?u?d"])
+                         charset_mask = "?1"
+                    mask = charset_mask * 4
+
+            print(f"[*] Configuración de ataque:")
+            print(f"    - Máscara: {mask}")
+            print(f"    - Charset: {args.charset}")
+            if extra_args:
+                print(f"    - Extra Args: {extra_args}")
+            
+            password = engine.start_bruteforce(rar_hash, mask=mask, callback=status_callback, extra_args=extra_args)
+            
+            if password:
+                print("\n" + "="*50)
+                print(f"[*] ¡CONTRASEÑA ENCONTRADA!: {password}")
+                print("="*50 + "\n")
+                
+                # Interacción con el usuario para extracción
+                try:
+                    response = input("¿Desea extraer el archivo ahora? (S/N): ").strip().lower()
+                    if response == 's':
+                        dest = input("Ingrese la carpeta de destino (Enter para carpeta actual): ").strip()
+                        if not dest:
+                            dest = "."
+                        
+                        print(f"[*] Extrayendo en: {dest} ...")
+                        opener = RarOpener()
+                        result = opener.extract_to(args.file, dest, password)
+                        
+                        if result['status'] == 'SUCCESS':
+                            print(f"[OK] {result['message']}")
+                            # Opción de abrir carpeta
+                            if os.name == 'nt':
+                                os.startfile(os.path.abspath(dest))
+                        else:
+                            print(f"[ERROR] Falló la extracción: {result.get('error')}")
+                            print(f"        Verifique que WinRAR esté instalado o use la contraseña manualmente.")
+                except KeyboardInterrupt:
+                    print("\n[!] Operación cancelada por el usuario.")
+            else:
+                print("\n[!] No se encontró la contraseña con la máscara actual.")
             
         except Exception as e:
             print(f"[FATAL] Ocurrió un error inesperado: {e}")
