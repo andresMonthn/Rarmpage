@@ -33,11 +33,19 @@ def main():
     open_parser.add_argument("file", help="Ruta al archivo RAR")
     open_parser.add_argument("--password", default=None, help="Contraseña opcional")
 
-    # Comando: extract_crypto (Harksd Layer)
-    crypto_parser = subparsers.add_parser("extract_crypto", help="Extracción manual criptográfica (Harksd)")
+    # Comando: extract_crypto (Simplificado)
+    crypto_parser = subparsers.add_parser("extract_crypto", help="Extracción segura con contraseña conocida")
     crypto_parser.add_argument("file", help="Ruta al archivo RAR")
-    crypto_parser.add_argument("--password", required=False, help="Contraseña (Opcional si se desea intentar descifrado sin pass conocido)")
-    crypto_parser.add_argument("--length", type=int, required=False, help="Longitud específica de contraseña para fuerza bruta")
+    crypto_parser.add_argument("--password", required=True, help="Contraseña conocida (Requerida)")
+
+    # Comando: gpu_crack
+    gpu_parser = subparsers.add_parser("gpu_crack", help="Recuperación de contraseña acelerada por GPU (Hashcat)")
+    gpu_parser.add_argument("file", help="Ruta al archivo RAR")
+    gpu_parser.add_argument("--mask", default="?a?a?a?a", help="Máscara de fuerza bruta (Default: ?a?a?a?a)")
+    gpu_parser.add_argument("--hashcat-bin", default=None, help="Ruta al ejecutable de hashcat (Opcional si ya se instaló)")
+
+    # Comando: setup_gpu
+    subparsers.add_parser("setup_gpu", help="Descarga e instala Hashcat automáticamente en el proyecto")
 
     args = parser.parse_args()
 
@@ -67,7 +75,6 @@ def main():
             ctx = rar_parser.get_crypto_context()
             if ctx and 'iterations' in ctx.params:
                  # Actualizar perfil si tenemos datos reales
-                 # (CryptoProfile es un DTO de alto nivel, CryptoContext es técnico)
                  pass
 
         # 3. Exportar
@@ -108,15 +115,66 @@ def main():
     elif args.command == "extract_crypto":
         from openRAR.harksd import HarksdExtractor
         extractor = HarksdExtractor(args.file)
-        print(f"Iniciando extracción criptográfica manual: {args.file}")
+        print(f"Iniciando extracción segura: {args.file}")
         
-        # Pasar el argumento length si existe
-        if hasattr(args, 'length') and args.length:
-            result = extractor.extract(args.password, length=args.length)
-        else:
-            result = extractor.extract(args.password)
+        result = extractor.extract(args.password)
             
         print(json.dumps(result, indent=2, default=str))
+
+    elif args.command == "gpu_crack":
+        # Importación diferida para evitar errores si faltan módulos
+        try:
+            from GPU.extractor import RarHashExtractor
+            from GPU.engine import HashcatEngine
+        except ImportError as e:
+            print(f"[ERROR] No se pudo importar el módulo GPU: {e}")
+            return
+
+        print(f"[*] Iniciando módulo GPU para: {args.file}")
+        
+        # 1. Extraer Hash
+        try:
+            extractor = RarHashExtractor(args.file)
+            rar_hash = extractor.get_hashcat_format()
+            
+            if not rar_hash:
+                print("[!] Error: No se pudo extraer un hash válido. Verifique:")
+                print("    - Que el archivo sea RAR5")
+                print("    - Que esté encriptado (con contraseña)")
+                return
+
+            print(f"[*] Hash extraído con éxito.")
+            print(f"[*] Preview: {rar_hash[:60]}...")
+            
+            # 2. Iniciar Motor
+            engine = HashcatEngine(args.hashcat_bin)
+            
+            def status_callback(msg):
+                # Callback simple para mostrar progreso
+                print(f"   >> {msg}")
+                
+            print(f"[*] Iniciando ataque con máscara: {args.mask}")
+            print(f"[*] Usando binario hashcat: {args.hashcat_bin}")
+            
+            engine.start_bruteforce(rar_hash, mask=args.mask, callback=status_callback)
+            
+        except Exception as e:
+            print(f"[FATAL] Ocurrió un error inesperado: {e}")
+            import traceback
+            traceback.print_exc()
+
+    elif args.command == "setup_gpu":
+        print("[*] Iniciando instalación de Hashcat...")
+        try:
+            from GPU.installer import install_hashcat
+            path = install_hashcat()
+            if path:
+                print(f"[OK] Hashcat listo para usarse en: {path}")
+            else:
+                print("[FAIL] La instalación falló.")
+        except ImportError as e:
+            print(f"[ERROR] Faltan dependencias para el instalador: {e}")
+            print("Intenta: pip install py7zr requests")
 
     else:
         parser.print_help()
