@@ -47,6 +47,10 @@ def main():
     gpu_parser.add_argument("--max", type=int, help="Longitud máxima")
     gpu_parser.add_argument("-c", "--charset", choices=["num", "lower", "upper", "alpha", "alphanum", "all", "special"], default="alphanum", help="Juego de caracteres (default: alphanum)")
     gpu_parser.add_argument("--hashcat-bin", default=None, help="Ruta al ejecutable de hashcat (Opcional)")
+    gpu_parser.add_argument("-w", "--wordlist", default=None, help="Ruta a un archivo de diccionario (Ataque de diccionario)")
+    gpu_parser.add_argument("-r", "--rules", default=None, help="Archivo de reglas para Hashcat (ej: best64.rule)")
+    gpu_parser.add_argument("--smart", action="store_true", help="Activar modo inteligente: combina diccionario con números, fechas y años (1950+)")
+    gpu_parser.add_argument("--auto-extract", action="store_true", help="Extraer automáticamente si se encuentra la contraseña (sin preguntar)")
 
     # Comando: setup_gpu
     subparsers.add_parser("setup_gpu", help="Descarga e instala Hashcat automáticamente en el proyecto")
@@ -178,89 +182,146 @@ def main():
             mask = args.mask
             extra_args = []
             
-            if not mask:
-                # Charset mapping
-                charset_mask = "?a" # Fallback
-                custom_charset = None
-                
-                if args.charset == "num":
-                    charset_mask = "?d"
-                elif args.charset == "lower":
-                    charset_mask = "?l"
-                elif args.charset == "upper":
-                    charset_mask = "?u"
-                elif args.charset == "alpha":
-                    custom_charset = "?l?u"
-                    charset_mask = "?1"
-                elif args.charset == "alphanum":
-                    custom_charset = "?l?u?d"
-                    charset_mask = "?1"
-                elif args.charset == "special":
-                    custom_charset = "?s"
-                    charset_mask = "?1"
-                elif args.charset == "all":
-                    charset_mask = "?a"
+            # Asegurar rutas absolutas para Hashcat
+            if args.wordlist:
+                args.wordlist = os.path.abspath(args.wordlist)
+            if args.rules:
+                # Si no es absoluta y existe localmente, hacerla absoluta
+                if not os.path.isabs(args.rules) and os.path.exists(args.rules):
+                    args.rules = os.path.abspath(args.rules)
+            
+            if args.rules:
+                extra_args.extend(["-r", args.rules])
+            
+            if not args.wordlist:
+                if not mask:
+                    # Charset mapping
+                    charset_mask = "?a" # Fallback
+                    custom_charset = None
                     
-                if custom_charset:
-                    extra_args.extend(["-1", custom_charset])
-                    
-                # Length logic
-                if args.length:
-                    mask = charset_mask * args.length
-                elif args.min or args.max:
-                    # Increment mode
-                    min_l = args.min if args.min else 1
-                    max_l = args.max if args.max else 8
-                    
-                    extra_args.append("--increment")
-                    extra_args.extend(["--increment-min", str(min_l)])
-                    extra_args.extend(["--increment-max", str(max_l)])
-                    
-                    # For increment, mask needs to be the MAX length
-                    mask = charset_mask * max_l
-                else:
-                    # Default: Length 4 alphanum if nothing specified
-                    print("[*] No se especificó longitud. Usando default: longitud 4, alfanumérico.")
-                    if not custom_charset and args.charset == "alphanum": # Default charset
-                         extra_args.extend(["-1", "?l?u?d"])
-                         charset_mask = "?1"
-                    mask = charset_mask * 4
+                    if args.charset == "num":
+                        charset_mask = "?d"
+                    elif args.charset == "lower":
+                        charset_mask = "?l"
+                    elif args.charset == "upper":
+                        charset_mask = "?u"
+                    elif args.charset == "alpha":
+                        custom_charset = "?l?u"
+                        charset_mask = "?1"
+                    elif args.charset == "alphanum":
+                        custom_charset = "?l?u?d"
+                        charset_mask = "?1"
+                    elif args.charset == "special":
+                        custom_charset = "?s"
+                        charset_mask = "?1"
+                    elif args.charset == "all":
+                        charset_mask = "?a"
+                        
+                    if custom_charset:
+                        extra_args.extend(["-1", custom_charset])
+                        
+                    # Length logic
+                    if args.length:
+                        mask = charset_mask * args.length
+                    elif args.min or args.max:
+                        # Increment mode
+                        min_l = args.min if args.min else 1
+                        max_l = args.max if args.max else 8
+                        
+                        extra_args.append("--increment")
+                        extra_args.extend(["--increment-min", str(min_l)])
+                        extra_args.extend(["--increment-max", str(max_l)])
+                        
+                        # For increment, mask needs to be the MAX length
+                        mask = charset_mask * max_l
+                    else:
+                        # Default: Length 4 alphanum if nothing specified
+                        print("[*] No se especificó longitud. Usando default: longitud 4, alfanumérico.")
+                        if not custom_charset and args.charset == "alphanum": # Default charset
+                             extra_args.extend(["-1", "?l?u?d"])
+                             charset_mask = "?1"
+                        mask = charset_mask * 4
 
-            print(f"[*] Configuración de ataque:")
-            print(f"    - Máscara: {mask}")
-            print(f"    - Charset: {args.charset}")
-            if extra_args:
-                print(f"    - Extra Args: {extra_args}")
+            password = None
+            if args.smart and args.wordlist:
+                print(f"[*] Modo: Ataque Inteligente (Diccionario + Reglas Híbridas)")
+                print(f"    - Diccionario Base: {args.wordlist}")
+                print(f"    - Estrategia: Wordlist -> Wordlist + [0-9]{{1,4}} (Fechas/Años)")
+                
+                if not os.path.exists(args.wordlist):
+                    print(f"[!] Error: No se encontró el archivo de diccionario: {args.wordlist}")
+                    return
+                
+                password = engine.start_smart_attack(rar_hash, args.wordlist, callback=status_callback)
+
+            elif args.wordlist:
+                print(f"[*] Modo: Ataque de Diccionario")
+                print(f"    - Diccionario: {args.wordlist}")
+                if not os.path.exists(args.wordlist):
+                    print(f"[!] Error: No se encontró el archivo de diccionario: {args.wordlist}")
+                    return
+                # Para diccionario no usamos extra_args de máscara, pero sí reglas
+                password = engine.start_dictionary_attack(rar_hash, args.wordlist, callback=status_callback, extra_args=extra_args)
+            else:
+                print(f"[*] Modo: Fuerza Bruta (Máscara)")
+                print(f"    - Máscara: {mask}")
+                print(f"    - Charset: {args.charset}")
+                if extra_args:
+                    print(f"    - Extra Args: {extra_args}")
+                password = engine.start_bruteforce(rar_hash, mask=mask, callback=status_callback, extra_args=extra_args)
             
-            password = engine.start_bruteforce(rar_hash, mask=mask, callback=status_callback, extra_args=extra_args)
-            
+            if not password and args.wordlist:
+                print("\n[!] GPU no encontró la contraseña. Intentando verificación profunda con CPU (UnRAR)...")
+                print("    Este método es más lento pero infalible para validar el diccionario.")
+                try:
+                    from GPU.cpu_engine import CPUEngine
+                    cpu_engine = CPUEngine()
+                    
+                    def cpu_callback(msg):
+                        sys.stdout.write(f"\r{msg}   ")
+                        sys.stdout.flush()
+                        
+                    password = cpu_engine.start_dictionary_attack(args.file, args.wordlist, callback=cpu_callback)
+                    print() # Newline post callback
+                except Exception as e:
+                    print(f"\n[!] Error en motor CPU: {e}")
+
             if password:
                 print("\n" + "="*50)
                 print(f"[*] ¡CONTRASEÑA ENCONTRADA!: {password}")
                 print("="*50 + "\n")
                 
                 # Interacción con el usuario para extracción
-                try:
-                    response = input("¿Desea extraer el archivo ahora? (S/N): ").strip().lower()
-                    if response == 's':
-                        dest = input("Ingrese la carpeta de destino (Enter para carpeta actual): ").strip()
-                        if not dest:
-                            dest = "."
-                        
-                        print(f"[*] Extrayendo en: {dest} ...")
-                        opener = RarOpener()
-                        result = opener.extract_to(args.file, dest, password)
-                        
-                        if result['status'] == 'SUCCESS':
-                            print(f"[OK] {result['message']}")
-                            # Opción de abrir carpeta
-                            if os.name == 'nt':
-                                os.startfile(os.path.abspath(dest))
-                        else:
-                            print(f"[ERROR] Falló la extracción: {result.get('error')}")
-                            print(f"        Verifique que WinRAR esté instalado o use la contraseña manualmente.")
-                except KeyboardInterrupt:
-                    print("\n[!] Operación cancelada por el usuario.")
+                should_extract = False
+                dest = "."
+                
+                if args.auto_extract:
+                    should_extract = True
+                    print(f"[*] Modo auto-extract activado.")
+                else:
+                    try:
+                        response = input("¿Desea extraer el archivo ahora? (S/N): ").strip().lower()
+                        if response == 's':
+                            should_extract = True
+                            user_dest = input("Ingrese la carpeta de destino (Enter para carpeta actual): ").strip()
+                            if user_dest:
+                                dest = user_dest
+                    except KeyboardInterrupt:
+                        print("\n[!] Operación cancelada por el usuario.")
+
+                if should_extract:
+                    print(f"[*] Extrayendo en: {dest} ...")
+                    opener = RarOpener()
+                    result = opener.extract_to(args.file, dest, password)
+                    
+                    if result['status'] == 'SUCCESS':
+                        print(f"[OK] {result['message']}")
+                        # Opción de abrir carpeta
+                        if os.name == 'nt' and not args.auto_extract:
+                            os.startfile(os.path.abspath(dest))
+                    else:
+                        print(f"[ERROR] Falló la extracción: {result.get('error')}")
+                        print(f"        Verifique que WinRAR esté instalado o use la contraseña manualmente.")
             else:
                 print("\n[!] No se encontró la contraseña con la máscara actual.")
             

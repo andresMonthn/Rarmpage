@@ -57,11 +57,51 @@ class HashcatEngine:
         print(f"[GPU] Ejecutando benchmark: {' '.join(cmd)}")
         subprocess.run(cmd)
 
+    def start_smart_attack(self, hash_string: str, wordlist_path: str,
+                          callback: Optional[Callable] = None) -> Optional[str]:
+        """
+        Estrategia inteligente:
+        1. Diccionario simple (rápido)
+        2. Híbrido: Diccionario + Sufijos numéricos (1-4 dígitos)
+           Cubre: números simples, años (1950-2099), fechas (DDMM/MMDD)
+        """
+        # Paso 1: Diccionario directo
+        if callback: callback("[GPU] Fase 1: Ataque de Diccionario Directo...")
+        res = self.start_dictionary_attack(hash_string, wordlist_path, callback)
+        if res: return res
+
+        # Paso 2: Híbrido (Wordlist + Mask)
+        # Modo 6: Wordlist + Mask
+        # Mask: ?d?d?d?d con --increment (1 a 4 dígitos)
+        if callback: callback("[GPU] Fase 2: Ataque Híbrido (Fechas/Años/Números)...")
+        
+        extra_args = ["--increment", "--increment-min", "1", "--increment-max", "4"]
+        # En modo 6: hashcat [options] hashfile wordlist mask
+        return self._run_attack(hash_string, mode="6", targets=[wordlist_path, "?d?d?d?d"], 
+                              callback=callback, extra_args=extra_args)
+
     def start_bruteforce(self, hash_string: str, mask: str = "?a?a?a?a", 
                         callback: Optional[Callable] = None,
                         extra_args: list = None) -> Optional[str]:
         """
         Inicia un ataque de máscara (Fuerza Bruta).
+        """
+        return self._run_attack(hash_string, mode="3", targets=[mask], callback=callback, extra_args=extra_args)
+
+    def start_dictionary_attack(self, hash_string: str, wordlist_path: str,
+                               callback: Optional[Callable] = None,
+                               extra_args: list = None) -> Optional[str]:
+        """
+        Inicia un ataque de diccionario.
+        """
+        return self._run_attack(hash_string, mode="0", targets=[wordlist_path], callback=callback, extra_args=extra_args)
+
+    def _run_attack(self, hash_string: str, mode: str, targets: list,
+                   callback: Optional[Callable] = None,
+                   extra_args: list = None) -> Optional[str]:
+        """
+        Método interno para ejecutar hashcat con diferentes modos (-a).
+        targets: lista de argumentos posicionales (wordlist, mask, etc.)
         """
         # Crear archivo temporal para el hash
         hash_file = os.path.abspath("target.hash")
@@ -73,7 +113,7 @@ class HashcatEngine:
         cmd = [
             self.hashcat_path,
             "-m", self.MODE_RAR5,
-            "-a", "3",
+            "-a", mode,
             "-w", "3", 
             "--status", "--status-timer", "2"
         ]
@@ -82,7 +122,7 @@ class HashcatEngine:
             cmd.extend(extra_args)
             
         cmd.append(hash_file)
-        cmd.append(mask)
+        cmd.extend(targets)
         
         found_password = None
         
@@ -91,7 +131,7 @@ class HashcatEngine:
         
         if success:
             # Si terminó exitosamente (o dice Cracked), intentamos recuperar la contraseña con --show
-            found_password = self._retrieve_password(hash_file, mask)
+            found_password = self._retrieve_password(hash_file)
         
         # Limpieza
         # if os.path.exists(hash_file):
@@ -99,7 +139,7 @@ class HashcatEngine:
             
         return found_password
 
-    def _retrieve_password(self, hash_file, mask):
+    def _retrieve_password(self, hash_file):
         """Ejecuta hashcat --show para obtener la contraseña limpia"""
         cmd = [
             self.hashcat_path,
@@ -124,14 +164,12 @@ class HashcatEngine:
                 # Separar por el último ':'
                 # Cuidado: la contraseña puede contener ':'
                 # Hashcat output para RAR5 es: hash:password
-                # El hash empieza con $rar5$
+                # El hash empieza con $rar5$ y NO contiene ':' (es hex y $)
                 
-                # Buscamos la última ocurrencia de ':'
-                # Pero el hash RAR5 contiene muchos '$' y caracteres.
-                # Lo más seguro es split.
-                parts = output.split(':')
-                if len(parts) >= 2:
-                    return parts[-1]
+                # Separar por el PRIMER ':' para soportar contraseñas con ':'
+                parts = output.split(':', 1)
+                if len(parts) == 2:
+                    return parts[1]
             return None
             
         except Exception as e:
@@ -179,6 +217,11 @@ class HashcatEngine:
         # Hashcat retorna 0 si cracked all, 1 si exhausted
         if rc == 0:
             success = True
+            
+        if not success:
+            stderr_out = self.process.stderr.read()
+            if stderr_out:
+                print(f"\n[GPU LOG] {stderr_out}")
             
         return success
 

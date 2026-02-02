@@ -73,4 +73,6 @@ class ExecutionMetrics:
         try:
             func(*args, **kwargs)
         finally:
-            return metrics.stop()
+            # Detener medición siempre, pero permitir que las excepciones se propaguen
+            result = metrics.stop()
+        return result
